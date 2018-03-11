@@ -1,0 +1,18 @@
+{
+  "name": "tg/fuzzymock",
+  "type": "project",
+  "require": {
+
+  },
+  "authors": [
+    {
+      "name": "timglabisch",
+      "email": "tim@ainfach.de"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Tg\\Fuzzymock\\": "src/"
+    }
+  }
+}
