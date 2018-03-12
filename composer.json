@@ -1,6 +1,6 @@
 {
   "name": "timg/fuzzymock",
-  "type": "project",
+  "type": "library",
   "require": {
 
   },
