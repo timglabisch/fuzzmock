@@ -1,6 +1,7 @@
 {
   "name": "timg/fuzzymock",
   "type": "library",
+  "license": "MIT",
   "require": {
 
   },

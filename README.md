@@ -1,5 +1,9 @@
 # fuzzmock
 
+```
+composer require timg/fuzzymock
+```
+
 Fuzzymock is a small library that helps to create tests for edge-cases.
 
 Sometimes you want to check if 2 different implementations that are using such a class are working the same way. 
