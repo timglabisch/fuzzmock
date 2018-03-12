@@ -2,6 +2,8 @@
 
 namespace Tg\Fuzzymock;
 
+use Tg\Fuzzymock\ReturnType\FuzzyInstanceCreatorInterface;
+
 class FuzzyBuilder
 {
     private $classname;
@@ -31,7 +33,61 @@ class FuzzyBuilder
 
     }
 
-    public function build()
+    public function build(): FuzzyInstanceCreatorInterface
+    {
+        $refl = new \ReflectionClass($this->classname);
+
+        $klass = 'TgFuzzBuilder' . preg_replace("/[^a-zA-Z0-9]+/", "", uniqid('', true) . uniqid('', true));
+        $proxyKlass = $this->buildProxy();
+
+
+        $out = '';
+        $out .= 'namespace Tg\FuzzProxy;' . "\n";
+        $out .= 'class ' . $klass . ' implements \Tg\Fuzzymock\ReturnType\FuzzyInstanceCreatorInterface {' . "\n";
+
+        foreach ($refl->getMethods() as $method) {
+
+            if (!$method->isPublic()) {
+                continue;
+            }
+
+            $out .= ' public $_fuzzyMethodValue' . $method->getName() . ';' . "\n";
+
+        }
+
+        $out .= 'public function __construct() {}' . "\n";
+
+        $out .= 'public function createNew() {' . "\n";
+
+        foreach ($refl->getMethods() as $method) {
+
+            if (!$method->isPublic()) {
+                continue;
+            }
+
+            $out .= '$proxy = new ' . $proxyKlass . '();'."\n";
+
+            $out .= '$proxy->_fuzzyMethodValue' . $method->getName() . ' = (function() {' . "\n";
+
+            $out .= $this->buildMethodContent($method->getName()) . "\n";
+
+            $out .= '})();' . "\n";
+
+        }
+
+        $out .= 'return $proxy;' . "\n";
+
+        $out .= '}' . "\n";
+        $out .= '}' . "\n";
+
+        eval($out);
+
+        $fqn = '\Tg\FuzzProxy\\' . $klass;
+
+        return new $fqn;
+    }
+
+    public function buildProxy()
     {
         $refl = new \ReflectionClass($this->classname);
 
@@ -41,7 +97,15 @@ class FuzzyBuilder
         $out .= 'namespace Tg\FuzzProxy;' . "\n";
         $out .= 'class ' . $klass . ' {' . "\n";
 
-        $out .= 'public function __construct() {}' . "\n";
+        foreach ($refl->getMethods() as $method) {
+
+            if (!$method->isPublic()) {
+                continue;
+            }
+
+            $out .= 'public $_fuzzyMethodValue' . $method->getName() . ';' . "\n";
+
+        }
 
         foreach ($refl->getMethods() as $method) {
 
@@ -55,9 +119,9 @@ class FuzzyBuilder
                 $methodParameters[] = '$' . $parameter->getName();
             }
 
-            $out .= 'function ' . $method->getName() . '(' . join(', ', $methodParameters) . ') {' . "\n";
+            $out .= 'public function ' . $method->getName() . '(' . join(', ', $methodParameters) . ') {' . "\n";
 
-            $out .= $this->buildMethodContent($method->getName()) . "\n";
+            $out .= 'return $this->_fuzzyMethodValue' . $method->getName().';'."\n";
 
             $out .= '}' . "\n";
 
@@ -68,9 +132,7 @@ class FuzzyBuilder
 
         eval($out);
 
-        $fqn = '\Tg\FuzzProxy\\' . $klass;
-
-        return new $fqn;
+        return '\Tg\FuzzProxy\\' . $klass;
     }
 
 
