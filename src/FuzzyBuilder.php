@@ -33,7 +33,7 @@ class FuzzyBuilder
 
     }
 
-    public function build(): FuzzyInstanceCreatorInterface
+    public function createBuilder(): FuzzyInstanceCreatorInterface
     {
         $refl = new \ReflectionClass($this->classname);
 
@@ -59,13 +59,13 @@ class FuzzyBuilder
 
         $out .= 'public function createNew() {' . "\n";
 
+        $out .= '$proxy = new ' . $proxyKlass . '();'."\n";
+
         foreach ($refl->getMethods() as $method) {
 
             if (!$method->isPublic()) {
                 continue;
             }
-
-            $out .= '$proxy = new ' . $proxyKlass . '();'."\n";
 
             $out .= '$proxy->_fuzzyMethodValue' . $method->getName() . ' = (function() {' . "\n";
 
