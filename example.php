@@ -1,6 +1,7 @@
 <?php
 
-use Tg\Fuzzymock\ReturnType\FuzzVariable;
+use Tg\Fuzzymock\ReturnType\FuzzyStringSimple;
+use Tg\Fuzzymock\ReturnType\FuzzyVariable;
 use Tg\Fuzzymock\ReturnType\FuzzyCastString;
 use Tg\Fuzzymock\ReturnType\FuzzyFloat;
 use Tg\Fuzzymock\ReturnType\FuzzyInt;
@@ -25,7 +26,8 @@ $fuzzyPersonMock->fn('getAge')
     ->couldReturn(new FuzzyCastString(new FuzzyInt()))
 ;
 $fuzzyPersonMock->fn('getName')
-    ->couldReturn(new FuzzVariable(4));
+    ->couldReturn(new FuzzyVariable(4))
+    ->couldReturn(new FuzzyStringSimple(10));
 
 /** @var Person $person */
 $personBuilder = $fuzzyPersonMock->createBuilder();

@@ -2,7 +2,7 @@
 
 namespace Tg\Fuzzymock\ReturnType;
 
-class FuzzVariable implements ReturnTypeInterface
+class FuzzyVariable implements ReturnTypeInterface
 {
 
     private static $indexCounter = 0;
