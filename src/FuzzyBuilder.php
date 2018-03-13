@@ -26,6 +26,7 @@ class FuzzyBuilder
     private function buildMethodContent(string $methodName): string
     {
         if (!isset($this->fuzzyMethods[$methodName])) {
+            return '';
             return 'throw new \\LogicException(\'unconfigured method "' . $methodName . '"\');';
         }
 
@@ -47,6 +48,10 @@ class FuzzyBuilder
 
         foreach ($refl->getMethods() as $method) {
 
+            if ($method->isConstructor()) {
+                continue;
+            }
+
             if (!$method->isPublic()) {
                 continue;
             }
@@ -59,9 +64,13 @@ class FuzzyBuilder
 
         $out .= 'public function createNew() {' . "\n";
 
-        $out .= '$proxy = new ' . $proxyKlass . '();'."\n";
+        $out .= '$proxy = new ' . $proxyKlass . '();' . "\n";
 
         foreach ($refl->getMethods() as $method) {
+
+            if ($method->isConstructor()) {
+                continue;
+            }
 
             if (!$method->isPublic()) {
                 continue;
@@ -87,6 +96,57 @@ class FuzzyBuilder
         return new $fqn;
     }
 
+    private function buildReturnType(\ReflectionMethod $method): string
+    {
+        if (!$method->hasReturnType()) {
+            return '';
+        }
+
+        $out = ': ';
+
+        if ($method->getReturnType()->allowsNull()) {
+            $out .= '?';
+        }
+
+        if ($method->getReturnType()->getName() === 'self') {
+            return $out . '\\' . $this->classname;
+        }
+
+        if ($method->getReturnType()->isBuiltin()) {
+            return $out . '' . $method->getReturnType()->getName();
+        }
+
+        return ' : \\' . $method->getReturnType()->getName();
+    }
+
+    public function buildParameterType(\ReflectionParameter $parameter)
+    {
+        if (!$parameter->hasType()) {
+            return '';
+        }
+
+        $param = '';
+
+        if ($parameter->getType()->allowsNull()) {
+            $param .= '?';
+        }
+
+        if ($parameter->getType()->isBuiltin()) {
+            return $param . $parameter->getType()->getName();
+        }
+
+        return $param . '\\' . $parameter->getType()->getName();
+    }
+
+    public function buildParameterDefault(\ReflectionParameter $parameter)
+    {
+        if (!$parameter->isDefaultValueAvailable()) {
+            return '';
+        }
+
+        return '= ' . var_export($parameter->getDefaultValue(), true);
+    }
+
     public function buildProxy()
     {
         $refl = new \ReflectionClass($this->classname);
@@ -95,9 +155,20 @@ class FuzzyBuilder
 
         $out = '';
         $out .= 'namespace Tg\FuzzProxy;' . "\n";
-        $out .= 'class ' . $klass . ' {' . "\n";
+
+        $out .= 'class ' . $klass . ' extends \\' . $this->classname . ' {' . "\n";
+
+        $out .= 'public function __construct() {}' . "\n";
 
         foreach ($refl->getMethods() as $method) {
+
+            if ($method->isConstructor()) {
+                continue;
+            }
+
+            if ($method->isStatic()) {
+                continue;
+            }
 
             if (!$method->isPublic()) {
                 continue;
@@ -109,6 +180,14 @@ class FuzzyBuilder
 
         foreach ($refl->getMethods() as $method) {
 
+            if ($method->isConstructor()) {
+                continue;
+            }
+
+            if ($method->isStatic()) {
+                continue;
+            }
+
             if (!$method->isPublic()) {
                 continue;
             }
@@ -116,12 +195,18 @@ class FuzzyBuilder
             $methodParameters = [];
 
             foreach ($method->getParameters() as $parameter) {
-                $methodParameters[] = '$' . $parameter->getName();
+                $methodParameters[] = $this->buildParameterType($parameter) . ' $' . $parameter->getName() . $this->buildParameterDefault($parameter);
             }
 
-            $out .= 'public function ' . $method->getName() . '(' . join(', ', $methodParameters) . ') {' . "\n";
+            $returnType = $this->buildReturnType($method);
+            $out .= 'public function ' . $method->getName() . '(' . join(', ', $methodParameters) . ') ' . $this->buildReturnType($method) . ' {' . "\n";
 
-            $out .= 'return $this->_fuzzyMethodValue' . $method->getName().';'."\n";
+            if ($method->hasReturnType() && $method->getReturnType()->getName() === 'void') {
+                $out .= '}' . "\n";
+                continue;
+            }
+
+            $out .= 'return $this->_fuzzyMethodValue' . $method->getName() . ';' . "\n";
 
             $out .= '}' . "\n";
 
