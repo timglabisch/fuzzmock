@@ -2,7 +2,7 @@
 
 namespace Tg\Fuzzymock\ReturnType;
 
-class FuzzyVariable implements ReturnTypeInterface
+class FuzzyFunctionResult implements ReturnTypeInterface
 {
 
     private static $indexCounter = 0;
@@ -12,7 +12,7 @@ class FuzzyVariable implements ReturnTypeInterface
     /** @var int */
     private $index;
 
-    public function __construct($var)
+    public function __construct(callable $var)
     {
         $this->index = self::$indexCounter++;
         self::$variableStorage[$this->index] = $var;
@@ -20,13 +20,9 @@ class FuzzyVariable implements ReturnTypeInterface
 
     public function getCode()
     {
-        $var = self::$variableStorage[$this->index];
-
-        if (is_scalar($var)) {
-            return 'return ' . var_export($var, true) . ';';
-        }
-
-        return 'return \\' . self::class . '::unsafeGetVariable(' . $this->index . ');';
+        $code = '$r = \\' . self::class . '::unsafeGetVariable(' . $this->index . ');'."\n";
+        $code .= 'return $r($proxy);'."\n";
+        return $code;
     }
 
     public static function unsafeGetVariable(int $index)
@@ -36,10 +32,6 @@ class FuzzyVariable implements ReturnTypeInterface
 
     public function __destruct()
     {
-        if (!isset(self::$variableStorage[$this->index])) {
-            return;
-        }
-
         unset(self::$variableStorage[$this->index]);
     }
 

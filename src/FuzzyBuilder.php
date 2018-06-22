@@ -76,7 +76,7 @@ class FuzzyBuilder
                 continue;
             }
 
-            $out .= '$proxy->_fuzzyMethodValue' . $method->getName() . ' = (function() {' . "\n";
+            $out .= '$proxy->_fuzzyMethodValue' . $method->getName() . ' = (function() use ($proxy) {' . "\n";
 
             $out .= $this->buildMethodContent($method->getName()) . "\n";
 
